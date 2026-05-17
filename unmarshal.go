@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+// Unmarshal reads environment variables into the exported fields of v, which
+// must be a pointer to a struct. Fields are mapped via the `env` struct tag.
+// Mark a field required with `req:"true"`; an error is returned if its env var
+// is unset. Nested structs are traversed recursively. Supported field types:
+// string, bool, and time.Duration.
 func Unmarshal(v any) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Pointer || rv.Elem().Kind() != reflect.Struct {

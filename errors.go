@@ -10,6 +10,8 @@ var (
 	ErrFileNotFound = errors.New("dotenv: file not found")
 )
 
+// ParseError is returned when a .env file contains a malformed line.
+// It carries the filename and line number so callers can report the exact location.
 type ParseError struct {
 	File string
 	Line int

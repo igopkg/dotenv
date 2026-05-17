@@ -8,6 +8,8 @@ import (
 	"os"
 )
 
+// Load reads the given .env files and sets each key in the process environment,
+// skipping keys that are already set. Defaults to ".env" if no files are given.
 func Load(files ...string) error {
 	if len(files) == 0 {
 		files = []string{".env"}
@@ -26,6 +28,7 @@ func Load(files ...string) error {
 	return nil
 }
 
+// Overload is like Load but overwrites keys that are already set in the environment.
 func Overload(files ...string) error {
 	if len(files) == 0 {
 		files = []string{".env"}
