@@ -1,5 +1,7 @@
 # dotenv
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A Go package for loading `.env` files into the process environment.
 
 ## Installation
@@ -91,3 +93,7 @@ if errors.As(err, &pe) {
 if errors.Is(err, dotenv.ErrFileName) { /* invalid filename */ }
 if errors.Is(err, dotenv.ErrFileNotFound) { /* file missing */ }
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
