@@ -37,17 +37,29 @@ func parseLine(raw string, lineNum int, filename string) (key, value string, ok 
 		return "", "", false, &ParseError{File: filename, Line: lineNum, Msg: "missing '=' separator"}
 	}
 	key = strings.TrimSpace(before)
-	value = strings.TrimSpace(after)
 	if key == "" {
 		return "", "", false, &ParseError{File: filename, Line: lineNum, Msg: "empty key"}
 	}
-	value = stripQuotes(value)
-	return key, value, true, nil
+	return key, parseValue(after), true, nil
 }
 
-func stripQuotes(s string) string {
-	if len(s) >= 2 && s[0] == s[len(s)-1] && (s[0] == '"' || s[0] == '\'') {
-		return s[1 : len(s)-1]
+// parseValue strips surrounding quotes and inline comments from a raw value.
+// A '#' starts a comment only after a closing quote or when preceded by
+// whitespace, so unquoted values like COLOR=#fff are kept intact.
+func parseValue(raw string) string {
+	s := strings.TrimSpace(raw)
+	if len(s) >= 2 && (s[0] == '"' || s[0] == '\'') {
+		if end := strings.IndexByte(s[1:], s[0]); end >= 0 {
+			rest := strings.TrimSpace(s[end+2:])
+			if rest == "" || rest[0] == '#' {
+				return s[1 : end+1]
+			}
+		}
+	}
+	for i := 1; i < len(raw); i++ {
+		if raw[i] == '#' && (raw[i-1] == ' ' || raw[i-1] == '\t') {
+			return strings.TrimSpace(raw[:i])
+		}
 	}
 	return s
 }
