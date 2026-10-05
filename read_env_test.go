@@ -36,6 +36,10 @@ func TestParseLine(t *testing.T) {
 		{"KEY= # only a comment", "KEY", "", true, false},
 		{"NOEQUALS", "", "", false, true},
 		{"=VALUE", "", "", false, true},
+		{`KEY="unterminated`, "", "", false, true},
+		{"KEY='unterminated", "", "", false, true},
+		{`KEY="`, "", "", false, true},
+		{`KEY="mismatched'`, "", "", false, true},
 	}
 
 	for _, tc := range cases {
@@ -92,6 +96,31 @@ func TestParseLines(t *testing.T) {
 	}
 	if len(got) != len(want) {
 		t.Errorf("map length: got %d, want %d", len(got), len(want))
+	}
+}
+
+func TestParseLines_StripsBOM(t *testing.T) {
+	lines := []string{"\uFEFFFIRST=one", "SECOND=two"}
+	got, err := parseLines(lines, "test.env")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got["FIRST"] != "one" {
+		t.Errorf("FIRST: got %q, want %q (keys: %q)", got["FIRST"], "one", got)
+	}
+}
+
+func TestLoad_FileWithBOM(t *testing.T) {
+	dir := t.TempDir()
+	path := writeTempEnv(t, dir, ".env", "\uFEFFBOM_TEST_KEY=bomval\r\n")
+	t.Setenv("BOM_TEST_KEY", "")
+	os.Unsetenv("BOM_TEST_KEY")
+
+	if err := Load(path); err != nil {
+		t.Fatal(err)
+	}
+	if got := os.Getenv("BOM_TEST_KEY"); got != "bomval" {
+		t.Errorf("got %q, want %q", got, "bomval")
 	}
 }
 

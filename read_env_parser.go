@@ -12,6 +12,9 @@ func isValidEnvFile(name string) bool {
 func parseLines(lines []string, filename string) (map[string]string, error) {
 	result := make(map[string]string)
 	for i, raw := range lines {
+		if i == 0 {
+			raw = strings.TrimPrefix(raw, "\uFEFF") // UTF-8 BOM from some editors
+		}
 		key, value, ok, err := parseLine(raw, i+1, filename)
 		if err != nil {
 			return nil, err
@@ -40,26 +43,33 @@ func parseLine(raw string, lineNum int, filename string) (key, value string, ok 
 	if key == "" {
 		return "", "", false, &ParseError{File: filename, Line: lineNum, Msg: "empty key"}
 	}
-	return key, parseValue(after), true, nil
+	value, ok = parseValue(after)
+	if !ok {
+		return "", "", false, &ParseError{File: filename, Line: lineNum, Msg: "unterminated quoted value"}
+	}
+	return key, value, true, nil
 }
 
 // parseValue strips surrounding quotes and inline comments from a raw value.
 // A '#' starts a comment only after a closing quote or when preceded by
 // whitespace, so unquoted values like COLOR=#fff are kept intact.
-func parseValue(raw string) string {
+// It reports false if the value opens a quote that is never closed.
+func parseValue(raw string) (string, bool) {
 	s := strings.TrimSpace(raw)
-	if len(s) >= 2 && (s[0] == '"' || s[0] == '\'') {
-		if end := strings.IndexByte(s[1:], s[0]); end >= 0 {
-			rest := strings.TrimSpace(s[end+2:])
-			if rest == "" || rest[0] == '#' {
-				return s[1 : end+1]
-			}
+	if s != "" && (s[0] == '"' || s[0] == '\'') {
+		end := strings.IndexByte(s[1:], s[0])
+		if end < 0 {
+			return "", false
+		}
+		rest := strings.TrimSpace(s[end+2:])
+		if rest == "" || rest[0] == '#' {
+			return s[1 : end+1], true
 		}
 	}
 	for i := 1; i < len(raw); i++ {
 		if raw[i] == '#' && (raw[i-1] == ' ' || raw[i-1] == '\t') {
-			return strings.TrimSpace(raw[:i])
+			return strings.TrimSpace(raw[:i]), true
 		}
 	}
-	return s
+	return s, true
 }
